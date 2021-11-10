@@ -1,0 +1,24 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npx parcel index.html",
+    "build": "npx parcel build index.html"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.16.0",
+    "parcel-bundler": "^1.12.5"
+  },
+  "dependencies": {
+    "@babel/plugin-proposal-class-properties": "^7.16.0",
+    "@babel/preset-react": "^7.16.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  }
+}
