@@ -1,103 +1,96 @@
 class WebSocketService {
+  static instance = null;
+  callbacks = {};
 
-    static instance = null
-    callbacks = {}
-    static getInstance(){
-        if (!WebSocketService.instance) {
-            WebSocketService.instance = new WebSocketService();
-        }
-        return WebSocketService.instance;
+  static getInstance() {
+    if (!WebSocketService.instance) {
+      WebSocketService.instance = new WebSocketService();
     }
+    return WebSocketService.instance;
+  }
 
-    constructor(){
-        this.socketRef = null;
+  constructor() {
+    this.socketRef = null;
+  }
+
+  connect(chatUrl) {
+    const path = `ws://127.0.0.1:8000/ws/chat/${chatUrl}/`;
+    console.log("PATH");
+    console.log(path);
+    this.socketRef = new WebSocket(path);
+    this.socketRef.onopen = () => {
+      console.log('WebSocket open');
+    };
+    /* this.socketNewMessage(JSON.stringify({
+      command: 'fetch_messages'
+    })); */
+    this.socketRef.onmessage = e => {
+      this.socketNewMessage(e.data);
+    };
+    this.socketRef.onerror = e => {
+      console.log(e.message);
+    };
+    this.socketRef.onclose = () => {
+      console.log("WebSocket closed let's reopen");
+      this.connect(chatUrl);
+    };
+  }
+
+  disconnect(){
+    this.socketRef.close()
+  }
+
+  socketNewMessage(data) {
+    const parsedData = JSON.parse(data);
+    const command = parsedData.command;
+    if (Object.keys(this.callbacks).length === 0) {
+      return;
     }
-
-    connect(){
-        const path = 'ws://127.0.0.1:8000/ws/chat/test/';
-        this.socketRef = new WebSocket(path);
-        this.socketRef.onopen = () => {
-            console.log('Web Socket Open');
-        };
-
-        this.socketNewMessage(JSON.stringify({message:{command:'fetch_messages'}}))
-        
-        this.socketRef.onmessage = e => {
-            this.socketNewMessage(e.data)
-        }
-        this.socketRef.onerror = e => {
-            console.error(e.message);
-        }
-        this.socketRef.onclose = e => {
-            console.log('Web Socket is closed');
-            this.connect();
-        }
+    if (command === 'messages') {
+      this.callbacks[command](parsedData.messages);
     }
-
-    socketNewMessage(data){
-        const parsedData = JSON.parse(data);
-        const command = parsedData.message.command;
-        if (Object.keys(this.callbacks).length === 0) {
-            return;
-        }
-        if(command === 'messages'){
-            this.callbacks[command](parsedData.message.messages)
-        }
-        if(command === 'new_message'){
-            this.callbacks[command](parsedData.message.message)
-        }
+    if (command === 'new_message') {
+      this.callbacks[command](parsedData.message);
     }
+  }
 
-    fetchMessages(username){
-        console.log('FETCH MESSAGES');
-        console.log(username);
-        console.log('-------------------------');
-        this.sendMessage({command:'fetch_messages', username: 'jcambron'})
-    }
+  fetchMessages(username, chatId) {
+    this.sendMessage({ 
+      command: 'fetch_messages', 
+      username: username, 
+      chatId: chatId 
+    });
+  }
 
-    newChatMessage(message){
-        console.log('NEW CHAT MESSAGE');
-        console.log(message);
-        console.log('-------------------------');
-        this.sendMessage({command:'new_message', from: message.from, message: message.content})
-    }
+  newChatMessage(message) {
+    this.sendMessage({ 
+      command: 'new_message', 
+      from: message.from, 
+      message: message.content,
+      chatId:message.chatId
+    }); 
+  }
 
-    addCallbacks(messagesCallback, newMessageCallback){
-        this.callbacks['messages'] = messagesCallback;
-        this.callbacks['new_message'] = newMessageCallback;
+  addCallbacks(messagesCallback, newMessageCallback) {
+    this.callbacks['messages'] = messagesCallback;
+    this.callbacks['new_message'] = newMessageCallback;
+  }
+  
+  sendMessage(data) {
+    try {
+      this.socketRef.send(JSON.stringify({ ...data }));
     }
+    catch(err) {
+      console.log(err.message);
+    }  
+  }
 
-    sendMessage(data){
-        try {
-            this.socketRef.send(JSON.stringify({...data}))
-        } catch (error) {
-            console.error(err.message);
-        }
-    }
-
-    state(){
-        return this.socketRef.readyState;
-    }
-
-    waitForSocketConnection(callback){
-        const socket = this.socketRef;
-        const recursion = this.waitForSocketConnection;
-        setTimeout(
-            function(){
-                if (socket.readyState===1){
-                    console.log('connection is secure');
-                    if(callback !=null){
-                        callback();
-                    }
-                    return;
-                } else {
-                    console.log('waiting for connection....');
-                    recursion(callback);
-                }
-            }, 1)
-    }
+  state() {
+    return this.socketRef.readyState;
+  }
 
 }
 
 const WebSocketInstance = WebSocketService.getInstance();
+
 export default WebSocketInstance;
